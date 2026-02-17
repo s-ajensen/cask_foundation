@@ -46,5 +46,6 @@ include(Catch)
 
 add_cask_plugin(event)
 add_cask_plugin(interpolation)
-add_cask_plugin(resource)
+add_cask_plugin(mesh)
+add_cask_plugin(texture)
 add_cask_plugin(entity)
