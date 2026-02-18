@@ -6,9 +6,7 @@ static FrameAdvancer* advancer = nullptr;
 
 static void interpolation_init(WorldHandle handle) {
     cask::WorldView world(handle);
-    advancer = new FrameAdvancer();
-    uint32_t advancer_id = world.register_component("FrameAdvancer");
-    world.bind(advancer_id, advancer);
+    advancer = world.register_component<FrameAdvancer>("FrameAdvancer");
 }
 
 static void interpolation_tick(WorldHandle) {
@@ -17,7 +15,6 @@ static void interpolation_tick(WorldHandle) {
 }
 
 static void interpolation_shutdown(WorldHandle) {
-    delete advancer;
     advancer = nullptr;
 }
 

@@ -5,30 +5,12 @@
 #include <cask/ecs/component_store.hpp>
 #include <cask/ecs/entity_compactor.hpp>
 
-static ResourceStore<TextureData>* texture_store = nullptr;
-static ComponentStore<TextureHandle>* texture_components = nullptr;
-
 static void texture_init(WorldHandle handle) {
     cask::WorldView world(handle);
-
-    auto* compactor = world.get<EntityCompactor>(world.register_component("EntityCompactor"));
-
-    texture_store = new ResourceStore<TextureData>();
-    uint32_t store_id = world.register_component("TextureStore");
-    world.bind(store_id, texture_store);
-
-    texture_components = new ComponentStore<TextureHandle>();
-    uint32_t components_id = world.register_component("TextureComponents");
-    world.bind(components_id, texture_components);
-
+    auto* compactor = world.resolve<EntityCompactor>("EntityCompactor");
+    world.register_component<ResourceStore<TextureData>>("TextureStore");
+    auto* texture_components = world.register_component<ComponentStore<TextureHandle>>("TextureComponents");
     compactor->add(texture_components, remove_component<TextureHandle>);
-}
-
-static void texture_shutdown(WorldHandle) {
-    delete texture_store;
-    texture_store = nullptr;
-    delete texture_components;
-    texture_components = nullptr;
 }
 
 static const char* defined_components[] = {"TextureStore", "TextureComponents"};
@@ -43,7 +25,7 @@ static PluginInfo plugin_info = {
     texture_init,
     nullptr,
     nullptr,
-    texture_shutdown
+    nullptr
 };
 
 extern "C" PluginInfo* get_plugin_info() {

@@ -38,14 +38,14 @@ SCENARIO("entity plugin reports its metadata", "[entity]") {
             REQUIRE(std::strcmp(info->requires_components[0], "EventSwapper") == 0);
         }
 
-        THEN("it provides init and shutdown functions") {
+        THEN("it provides an init function") {
             REQUIRE(info->init_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
         }
 
-        THEN("it does not provide tick or frame functions") {
+        THEN("it does not provide tick frame or shutdown functions") {
             REQUIRE(info->tick_fn == nullptr);
             REQUIRE(info->frame_fn == nullptr);
+            REQUIRE(info->shutdown_fn == nullptr);
         }
     }
 }

@@ -6,9 +6,7 @@ static EventSwapper* swapper = nullptr;
 
 static void event_init(WorldHandle handle) {
     cask::WorldView world(handle);
-    swapper = new EventSwapper();
-    uint32_t swapper_id = world.register_component("EventSwapper");
-    world.bind(swapper_id, swapper);
+    swapper = world.register_component<EventSwapper>("EventSwapper");
 }
 
 static void event_tick(WorldHandle) {
@@ -17,7 +15,6 @@ static void event_tick(WorldHandle) {
 }
 
 static void event_shutdown(WorldHandle) {
-    delete swapper;
     swapper = nullptr;
 }
 

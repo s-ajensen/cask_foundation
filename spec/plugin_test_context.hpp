@@ -19,7 +19,12 @@ struct PluginTestContext {
 
     void init() { info->init_fn(handle); }
     void tick() { info->tick_fn(handle); }
-    void shutdown() { info->shutdown_fn(handle); }
+    void shutdown() {
+        if (info->shutdown_fn) info->shutdown_fn(handle);
+        for (size_t index = 0; index < info->defines_count; ++index) {
+            world.destroy(info->defines_components[index]);
+        }
+    }
 };
 
 struct DestroyEvent {

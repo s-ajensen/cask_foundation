@@ -40,14 +40,14 @@ SCENARIO("mesh plugin reports its metadata", "[mesh]") {
             REQUIRE(std::strcmp(info->requires_components[0], "EntityCompactor") == 0);
         }
 
-        THEN("it provides init and shutdown functions") {
+        THEN("it provides an init function") {
             REQUIRE(info->init_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
         }
 
-        THEN("it does not provide tick or frame functions") {
+        THEN("it does not provide tick frame or shutdown functions") {
             REQUIRE(info->tick_fn == nullptr);
             REQUIRE(info->frame_fn == nullptr);
+            REQUIRE(info->shutdown_fn == nullptr);
         }
     }
 }
@@ -56,7 +56,6 @@ SCENARIO("mesh plugin initializes MeshStore and MeshComponents", "[mesh]") {
     GIVEN("a world with EntityCompactor and the mesh plugin") {
         MeshTestContext context;
         REQUIRE(context.info->init_fn != nullptr);
-        REQUIRE(context.info->shutdown_fn != nullptr);
 
         WHEN("init is called") {
             context.init();
@@ -78,7 +77,6 @@ SCENARIO("mesh plugin wires MeshComponents into EntityCompactor", "[mesh]") {
     GIVEN("an initialized mesh plugin") {
         MeshTestContext context;
         REQUIRE(context.info->init_fn != nullptr);
-        REQUIRE(context.info->shutdown_fn != nullptr);
         context.init();
 
         WHEN("an entity with a mesh handle is compacted") {
@@ -108,7 +106,6 @@ SCENARIO("mesh plugin shutdown allows reinit on fresh world", "[mesh]") {
     GIVEN("an initialized mesh plugin") {
         MeshTestContext context;
         REQUIRE(context.info->init_fn != nullptr);
-        REQUIRE(context.info->shutdown_fn != nullptr);
         context.init();
 
         REQUIRE(context.mesh_store() != nullptr);
