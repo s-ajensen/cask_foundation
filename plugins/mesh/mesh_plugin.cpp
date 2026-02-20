@@ -2,15 +2,12 @@
 #include <cask/world.hpp>
 #include <cask/resource/resource_store.hpp>
 #include <cask/resource/mesh_data.hpp>
-#include <cask/ecs/component_store.hpp>
-#include <cask/ecs/entity_compactor.hpp>
+#include <cask/foundation/register_component_store.hpp>
 
 static void mesh_init(WorldHandle handle) {
     cask::WorldView world(handle);
-    auto* compactor = world.resolve<EntityCompactor>("EntityCompactor");
     world.register_component<ResourceStore<MeshData>>("MeshStore");
-    auto* mesh_components = world.register_component<ComponentStore<MeshHandle>>("MeshComponents");
-    compactor->add(mesh_components, remove_component<MeshHandle>);
+    cask::register_component_store<MeshHandle>(world, "MeshComponents");
 }
 
 static const char* defined_components[] = {"MeshStore", "MeshComponents"};

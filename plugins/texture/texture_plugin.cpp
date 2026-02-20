@@ -2,15 +2,12 @@
 #include <cask/world.hpp>
 #include <cask/resource/resource_store.hpp>
 #include <cask/resource/texture_data.hpp>
-#include <cask/ecs/component_store.hpp>
-#include <cask/ecs/entity_compactor.hpp>
+#include <cask/foundation/register_component_store.hpp>
 
 static void texture_init(WorldHandle handle) {
     cask::WorldView world(handle);
-    auto* compactor = world.resolve<EntityCompactor>("EntityCompactor");
     world.register_component<ResourceStore<TextureData>>("TextureStore");
-    auto* texture_components = world.register_component<ComponentStore<TextureHandle>>("TextureComponents");
-    compactor->add(texture_components, remove_component<TextureHandle>);
+    cask::register_component_store<TextureHandle>(world, "TextureComponents");
 }
 
 static const char* defined_components[] = {"TextureStore", "TextureComponents"};

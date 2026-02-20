@@ -25,18 +25,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(Catch2)
 
+add_library(cask_foundation_headers INTERFACE)
+target_include_directories(cask_foundation_headers INTERFACE include/)
+target_link_libraries(cask_foundation_headers INTERFACE cask_core)
+
 function(add_cask_plugin plugin_name)
     set(plugin_src plugins/${plugin_name}/${plugin_name}_plugin.cpp)
 
     add_library(${plugin_name}_plugin SHARED ${plugin_src})
-    target_link_libraries(${plugin_name}_plugin PRIVATE cask_engine cask_core)
+    target_link_libraries(${plugin_name}_plugin PRIVATE cask_engine cask_foundation_headers)
     set_target_properties(${plugin_name}_plugin PROPERTIES PREFIX "")
 
     add_executable(${plugin_name}_tests
         spec/${plugin_name}/${plugin_name}_plugin_spec.cpp
         ${plugin_src}
     )
-    target_link_libraries(${plugin_name}_tests PRIVATE cask_engine cask_core Catch2::Catch2WithMain)
+    target_link_libraries(${plugin_name}_tests PRIVATE cask_engine cask_foundation_headers Catch2::Catch2WithMain)
     catch_discover_tests(${plugin_name}_tests)
 endfunction()
 
@@ -50,3 +54,11 @@ add_cask_plugin(mesh)
 add_cask_plugin(texture)
 add_cask_plugin(entity)
 add_cask_plugin(identity)
+
+add_executable(registration_tests
+    spec/registration/register_event_queue_spec.cpp
+    spec/registration/register_component_store_spec.cpp
+    spec/registration/register_interpolated_spec.cpp
+)
+target_link_libraries(registration_tests PRIVATE cask_foundation_headers cask_engine cask_core Catch2::Catch2WithMain)
+catch_discover_tests(registration_tests)

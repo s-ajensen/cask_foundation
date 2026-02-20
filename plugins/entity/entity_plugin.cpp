@@ -3,8 +3,7 @@
 #include <cask/ecs/entity_table.hpp>
 #include <cask/ecs/entity_compactor.hpp>
 #include <cask/ecs/entity_events.hpp>
-#include <cask/event/event_swapper.hpp>
-#include <cask/event/event_queue.hpp>
+#include <cask/foundation/register_event_queue.hpp>
 
 static EntityCompactor* compactor = nullptr;
 static EventQueue<DestroyEntity>* destroy_queue = nullptr;
@@ -14,9 +13,7 @@ static void entity_init(WorldHandle handle) {
     auto* table = world.register_component<EntityTable>("EntityTable");
     compactor = world.register_component<EntityCompactor>("EntityCompactor");
     compactor->table_ = table;
-    destroy_queue = world.register_component<EventQueue<DestroyEntity>>("DestroyEntityQueue");
-    auto* swapper = world.resolve<EventSwapper>("EventSwapper");
-    swapper->add(destroy_queue, swap_queue<DestroyEntity>);
+    destroy_queue = cask::register_event_queue<DestroyEntity>(world, "DestroyEntityQueue");
 }
 
 static void entity_tick(WorldHandle) {
