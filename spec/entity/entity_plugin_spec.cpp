@@ -134,7 +134,7 @@ SCENARIO("entity plugin tick compacts destroyed entities", "[entity]") {
             }
 
             THEN("the component is removed from the store") {
-                REQUIRE(test_store.entity_to_index_.find(entity) == test_store.entity_to_index_.end());
+                REQUIRE_FALSE(test_store.has(entity));
             }
         }
 

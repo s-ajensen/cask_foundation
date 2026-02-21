@@ -63,7 +63,7 @@ SCENARIO("registered component store is wired to the EntityCompactor", "[registr
             }
 
             THEN("the component is removed from the store") {
-                REQUIRE(store->entity_to_index_.find(entity) == store->entity_to_index_.end());
+                REQUIRE_FALSE(store->has(entity));
             }
         }
     }

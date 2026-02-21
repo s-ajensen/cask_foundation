@@ -94,7 +94,7 @@ SCENARIO("texture plugin wires TextureComponents into EntityCompactor", "[textur
 
             THEN("the texture component is removed") {
                 auto* components = context.texture_components();
-                REQUIRE(components->entity_to_index_.find(entity) == components->entity_to_index_.end());
+                REQUIRE_FALSE(components->has(entity));
             }
         }
 

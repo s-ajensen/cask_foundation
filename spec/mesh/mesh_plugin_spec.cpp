@@ -94,7 +94,7 @@ SCENARIO("mesh plugin wires MeshComponents into EntityCompactor", "[mesh]") {
 
             THEN("the mesh component is removed") {
                 auto* components = context.mesh_components();
-                REQUIRE(components->entity_to_index_.find(entity) == components->entity_to_index_.end());
+                REQUIRE_FALSE(components->has(entity));
             }
         }
 
