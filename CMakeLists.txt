@@ -61,6 +61,7 @@ add_executable(registration_tests
     spec/registration/register_component_store_spec.cpp
     spec/registration/register_interpolated_spec.cpp
     spec/registration/register_serializable_store_spec.cpp
+    spec/registration/register_serializable_resource_spec.cpp
 )
 target_link_libraries(registration_tests PRIVATE cask_foundation_headers cask_engine cask_core Catch2::Catch2WithMain)
 catch_discover_tests(registration_tests)

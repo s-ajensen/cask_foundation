@@ -4,6 +4,7 @@
 #include <cask/resource/texture_data.hpp>
 #include <cask/ecs/component_store.hpp>
 #include <cask/event/event_queue.hpp>
+#include <cask/resource/resource_loader_registry.hpp>
 #include <cstring>
 
 struct TextureTestContext : CompactableTestContext {
@@ -16,6 +17,11 @@ struct TextureTestContext : CompactableTestContext {
         uint32_t components_id = world.register_component("TextureComponents");
         return world.get<ComponentStore<TextureHandle>>(components_id);
     }
+
+    cask::ResourceLoaderRegistry<TextureData>* texture_loader_registry() {
+        uint32_t registry_id = world.register_component("TextureLoaderRegistry");
+        return world.get<cask::ResourceLoaderRegistry<TextureData>>(registry_id);
+    }
 };
 
 SCENARIO("texture plugin reports its metadata", "[texture]") {
@@ -27,11 +33,12 @@ SCENARIO("texture plugin reports its metadata", "[texture]") {
             REQUIRE(std::strcmp(info->name, "texture") == 0);
         }
 
-        THEN("it defines TextureStore and TextureComponents") {
-            REQUIRE(info->defines_count == 2);
+        THEN("it defines TextureStore, TextureComponents, and TextureLoaderRegistry") {
+            REQUIRE(info->defines_count == 3);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "TextureStore") == 0);
             REQUIRE(std::strcmp(info->defines_components[1], "TextureComponents") == 0);
+            REQUIRE(std::strcmp(info->defines_components[2], "TextureLoaderRegistry") == 0);
         }
 
         THEN("it requires EntityCompactor") {
@@ -66,6 +73,23 @@ SCENARIO("texture plugin initializes TextureStore and TextureComponents", "[text
 
             THEN("TextureComponents is registered and retrievable") {
                 REQUIRE(context.texture_components() != nullptr);
+            }
+
+            context.shutdown();
+        }
+    }
+}
+
+SCENARIO("texture plugin initializes TextureLoaderRegistry", "[texture]") {
+    GIVEN("a world with EntityCompactor and the texture plugin") {
+        TextureTestContext context;
+        REQUIRE(context.info->init_fn != nullptr);
+
+        WHEN("init is called") {
+            context.init();
+
+            THEN("TextureLoaderRegistry is registered and retrievable") {
+                REQUIRE(context.texture_loader_registry() != nullptr);
             }
 
             context.shutdown();

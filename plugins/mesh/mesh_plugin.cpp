@@ -2,22 +2,24 @@
 #include <cask/world.hpp>
 #include <cask/resource/resource_store.hpp>
 #include <cask/resource/mesh_data.hpp>
+#include <cask/resource/resource_loader_registry.hpp>
 #include <cask/foundation/register_component_store.hpp>
 
 static void mesh_init(WorldHandle handle) {
     cask::WorldView world(handle);
     world.register_component<ResourceStore<MeshData>>("MeshStore");
     cask::register_component_store<MeshHandle>(world, "MeshComponents");
+    world.register_component<cask::ResourceLoaderRegistry<MeshData>>("MeshLoaderRegistry");
 }
 
-static const char* defined_components[] = {"MeshStore", "MeshComponents"};
+static const char* defined_components[] = {"MeshStore", "MeshComponents", "MeshLoaderRegistry"};
 static const char* required_components[] = {"EntityCompactor"};
 
 static PluginInfo plugin_info = {
     "mesh",
     defined_components,
     required_components,
-    2,
+    3,
     1,
     mesh_init,
     nullptr,

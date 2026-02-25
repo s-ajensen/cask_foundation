@@ -4,6 +4,7 @@
 #include <cask/resource/mesh_data.hpp>
 #include <cask/ecs/component_store.hpp>
 #include <cask/event/event_queue.hpp>
+#include <cask/resource/resource_loader_registry.hpp>
 #include <cstring>
 
 struct MeshTestContext : CompactableTestContext {
@@ -16,6 +17,11 @@ struct MeshTestContext : CompactableTestContext {
         uint32_t components_id = world.register_component("MeshComponents");
         return world.get<ComponentStore<MeshHandle>>(components_id);
     }
+
+    cask::ResourceLoaderRegistry<MeshData>* mesh_loader_registry() {
+        uint32_t registry_id = world.register_component("MeshLoaderRegistry");
+        return world.get<cask::ResourceLoaderRegistry<MeshData>>(registry_id);
+    }
 };
 
 SCENARIO("mesh plugin reports its metadata", "[mesh]") {
@@ -27,11 +33,12 @@ SCENARIO("mesh plugin reports its metadata", "[mesh]") {
             REQUIRE(std::strcmp(info->name, "mesh") == 0);
         }
 
-        THEN("it defines MeshStore and MeshComponents") {
-            REQUIRE(info->defines_count == 2);
+        THEN("it defines MeshStore, MeshComponents, and MeshLoaderRegistry") {
+            REQUIRE(info->defines_count == 3);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "MeshStore") == 0);
             REQUIRE(std::strcmp(info->defines_components[1], "MeshComponents") == 0);
+            REQUIRE(std::strcmp(info->defines_components[2], "MeshLoaderRegistry") == 0);
         }
 
         THEN("it requires EntityCompactor") {
@@ -66,6 +73,23 @@ SCENARIO("mesh plugin initializes MeshStore and MeshComponents", "[mesh]") {
 
             THEN("MeshComponents is registered and retrievable") {
                 REQUIRE(context.mesh_components() != nullptr);
+            }
+
+            context.shutdown();
+        }
+    }
+}
+
+SCENARIO("mesh plugin initializes MeshLoaderRegistry", "[mesh]") {
+    GIVEN("a world with EntityCompactor and the mesh plugin") {
+        MeshTestContext context;
+        REQUIRE(context.info->init_fn != nullptr);
+
+        WHEN("init is called") {
+            context.init();
+
+            THEN("MeshLoaderRegistry is registered and retrievable") {
+                REQUIRE(context.mesh_loader_registry() != nullptr);
             }
 
             context.shutdown();
