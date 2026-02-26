@@ -2,34 +2,34 @@
 #include <cask/world.hpp>
 #include <cask/ecs/frame_advancer.hpp>
 
-static FrameAdvancer* advancer = nullptr;
+struct InterpolationPluginState {
+    FrameAdvancer* advancer;
+};
 
 static void interpolation_init(WorldHandle handle) {
     cask::WorldView world(handle);
-    advancer = world.register_component<FrameAdvancer>("FrameAdvancer");
+    auto* state = world.register_component<InterpolationPluginState>("InterpolationPluginState");
+    state->advancer = world.register_component<FrameAdvancer>("FrameAdvancer");
 }
 
-static void interpolation_tick(WorldHandle) {
-    if (!advancer) return;
-    advancer->advance_all();
+static void interpolation_tick(WorldHandle handle) {
+    auto* state = static_cast<InterpolationPluginState*>(world_resolve_component(handle, "InterpolationPluginState"));
+    if (!state || !state->advancer) return;
+    state->advancer->advance_all();
 }
 
-static void interpolation_shutdown(WorldHandle) {
-    advancer = nullptr;
-}
-
-static const char* defined_components[] = {"FrameAdvancer"};
+static const char* defined_components[] = {"FrameAdvancer", "InterpolationPluginState"};
 
 static PluginInfo plugin_info = {
     "interpolation",
     defined_components,
     nullptr,
-    1,
+    2,
     0,
     interpolation_init,
     interpolation_tick,
     nullptr,
-    interpolation_shutdown
+    nullptr
 };
 
 extern "C" PluginInfo* get_plugin_info() {

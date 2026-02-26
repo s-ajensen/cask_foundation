@@ -23,8 +23,7 @@ struct IdentityTestContext : PluginTestContext {
     }
 
     EntityRegistry* registry() {
-        uint32_t registry_id = world.register_component("EntityRegistry");
-        return world.get<EntityRegistry>(registry_id);
+        return static_cast<EntityRegistry*>(world.resolve("EntityRegistry"));
     }
 };
 
@@ -37,10 +36,11 @@ SCENARIO("identity plugin reports its metadata", "[identity]") {
             REQUIRE(std::strcmp(info->name, "identity") == 0);
         }
 
-        THEN("it defines the EntityRegistry component") {
-            REQUIRE(info->defines_count == 1);
+        THEN("it defines EntityRegistry and IdentityPluginState") {
+            REQUIRE(info->defines_count == 2);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "EntityRegistry") == 0);
+            REQUIRE(std::strcmp(info->defines_components[1], "IdentityPluginState") == 0);
         }
 
         THEN("it requires EntityTable DestroyEntityQueue and EventSwapper") {
@@ -51,10 +51,13 @@ SCENARIO("identity plugin reports its metadata", "[identity]") {
             REQUIRE(std::strcmp(info->requires_components[2], "EventSwapper") == 0);
         }
 
-        THEN("it provides init tick and shutdown functions") {
+        THEN("it provides init and tick functions") {
             REQUIRE(info->init_fn != nullptr);
             REQUIRE(info->tick_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
+        }
+
+        THEN("it does not provide a shutdown function") {
+            REQUIRE(info->shutdown_fn == nullptr);
         }
 
         THEN("it does not provide a frame function") {
@@ -126,5 +129,44 @@ SCENARIO("identity plugin ignores destroy for entity without uuid", "[identity]"
         }
 
         context.shutdown();
+    }
+}
+
+SCENARIO("identity plugin isolates state across worlds", "[identity]") {
+    GIVEN("two initialized worlds each with a registered entity") {
+        IdentityTestContext context1;
+        IdentityTestContext context2;
+        context1.init();
+        context2.init();
+
+        auto* registry1 = context1.registry();
+        auto* registry2 = context2.registry();
+        REQUIRE(registry1 != nullptr);
+        REQUIRE(registry2 != nullptr);
+
+        cask::UUID uuid1 = cask::generate_uuid();
+        uint32_t entity1 = registry1->resolve(uuid1, context1.table);
+        REQUIRE(registry1->has(entity1));
+
+        cask::UUID uuid2 = cask::generate_uuid();
+        uint32_t entity2 = registry2->resolve(uuid2, context2.table);
+        REQUIRE(registry2->has(entity2));
+
+        WHEN("a destroy event is emitted only on world1") {
+            context1.destroy_queue.emit(DestroyEntity{entity1});
+            context1.swapper.swap_all();
+            context1.tick();
+
+            THEN("world1 entity identity is removed") {
+                REQUIRE_FALSE(registry1->has(entity1));
+            }
+
+            THEN("world2 entity identity is still present") {
+                REQUIRE(registry2->has(entity2));
+            }
+        }
+
+        context2.shutdown();
+        context1.shutdown();
     }
 }

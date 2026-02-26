@@ -10,8 +10,7 @@ struct TestEvent {
 
 struct EventTestContext : PluginTestContext {
     EventSwapper* swapper() {
-        uint32_t swapper_id = world.register_component("EventSwapper");
-        return world.get<EventSwapper>(swapper_id);
+        return static_cast<EventSwapper*>(world.resolve("EventSwapper"));
     }
 };
 
@@ -24,10 +23,11 @@ SCENARIO("event plugin reports its metadata", "[event]") {
             REQUIRE(std::strcmp(info->name, "event") == 0);
         }
 
-        THEN("it defines the EventSwapper component") {
-            REQUIRE(info->defines_count == 1);
+        THEN("it defines EventSwapper and EventPluginState components") {
+            REQUIRE(info->defines_count == 2);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "EventSwapper") == 0);
+            REQUIRE(std::strcmp(info->defines_components[1], "EventPluginState") == 0);
         }
 
         THEN("it requires no components") {
@@ -35,10 +35,13 @@ SCENARIO("event plugin reports its metadata", "[event]") {
             REQUIRE(info->requires_components == nullptr);
         }
 
-        THEN("it provides init tick and shutdown functions") {
+        THEN("it provides init and tick functions") {
             REQUIRE(info->init_fn != nullptr);
             REQUIRE(info->tick_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
+        }
+
+        THEN("it does not provide a shutdown function") {
+            REQUIRE(info->shutdown_fn == nullptr);
         }
 
         THEN("it does not provide a frame function") {
@@ -83,6 +86,38 @@ SCENARIO("event plugin tick swaps all event queues", "[event]") {
         }
 
         context.shutdown();
+    }
+}
+
+SCENARIO("event plugin isolates state between worlds", "[event]") {
+    GIVEN("two worlds each with the event plugin initialized") {
+        EventTestContext world1;
+        EventTestContext world2;
+        world1.init();
+        world2.init();
+
+        EventQueue<TestEvent> queue1;
+        EventQueue<TestEvent> queue2;
+        world1.swapper()->add(&queue1, swap_queue<TestEvent>);
+        world2.swapper()->add(&queue2, swap_queue<TestEvent>);
+
+        WHEN("an event is emitted on world1 and only world1 is ticked") {
+            queue1.emit(TestEvent{99});
+            world1.tick();
+
+            THEN("world1 queue has the event") {
+                auto& events = queue1.poll();
+                REQUIRE(events.size() == 1);
+                REQUIRE(events[0].value == 99);
+            }
+
+            THEN("world2 queue remains empty") {
+                REQUIRE(queue2.poll().empty());
+            }
+        }
+
+        world2.shutdown();
+        world1.shutdown();
     }
 }
 

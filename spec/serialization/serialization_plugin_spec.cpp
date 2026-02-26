@@ -37,10 +37,11 @@ SCENARIO("serialization plugin reports its metadata", "[serialization]") {
             REQUIRE(std::strcmp(info->name, "serialization") == 0);
         }
 
-        THEN("it defines the SerializationRegistry component") {
-            REQUIRE(info->defines_count == 1);
+        THEN("it defines SerializationRegistry and SerializationPluginState") {
+            REQUIRE(info->defines_count == 2);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "SerializationRegistry") == 0);
+            REQUIRE(std::strcmp(info->defines_components[1], "SerializationPluginState") == 0);
         }
 
         THEN("it requires EntityTable and EntityRegistry") {
@@ -50,14 +51,11 @@ SCENARIO("serialization plugin reports its metadata", "[serialization]") {
             REQUIRE(std::strcmp(info->requires_components[1], "EntityRegistry") == 0);
         }
 
-        THEN("it provides an init function but no tick or frame function") {
+        THEN("it provides only an init function") {
             REQUIRE(info->init_fn != nullptr);
             REQUIRE(info->tick_fn == nullptr);
             REQUIRE(info->frame_fn == nullptr);
-        }
-
-        THEN("it provides a shutdown function") {
-            REQUIRE(info->shutdown_fn != nullptr);
+            REQUIRE(info->shutdown_fn == nullptr);
         }
     }
 }
@@ -75,6 +73,32 @@ SCENARIO("serialization plugin initializes SerializationRegistry", "[serializati
 
             context.shutdown();
         }
+    }
+}
+
+SCENARIO("serialization plugin isolates state between worlds", "[serialization]") {
+    GIVEN("two worlds each with the serialization plugin initialized") {
+        SerializationTestContext world1;
+        SerializationTestContext world2;
+        world1.init();
+        world2.init();
+
+        auto* registry1 = world1.serialization_registry();
+        auto* registry2 = world2.serialization_registry();
+
+        THEN("each world has its own SerializationRegistry instance") {
+            REQUIRE(registry1 != nullptr);
+            REQUIRE(registry2 != nullptr);
+            REQUIRE(registry1 != registry2);
+        }
+
+        THEN("each registry independently has the EntityRegistry serializer") {
+            REQUIRE(registry1->has("EntityRegistry"));
+            REQUIRE(registry2->has("EntityRegistry"));
+        }
+
+        world2.shutdown();
+        world1.shutdown();
     }
 }
 

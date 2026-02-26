@@ -5,40 +5,39 @@
 #include <cask/ecs/entity_events.hpp>
 #include <cask/foundation/register_event_queue.hpp>
 
-static EntityCompactor* compactor = nullptr;
-static EventQueue<DestroyEntity>* destroy_queue = nullptr;
+struct EntityPluginState {
+    EntityCompactor* compactor;
+    EventQueue<DestroyEntity>* destroy_queue;
+};
 
 static void entity_init(WorldHandle handle) {
     cask::WorldView world(handle);
+    auto* state = world.register_component<EntityPluginState>("EntityPluginState");
     auto* table = world.register_component<EntityTable>("EntityTable");
-    compactor = world.register_component<EntityCompactor>("EntityCompactor");
-    compactor->table_ = table;
-    destroy_queue = cask::register_event_queue<DestroyEntity>(world, "DestroyEntityQueue");
+    state->compactor = world.register_component<EntityCompactor>("EntityCompactor");
+    state->compactor->table_ = table;
+    state->destroy_queue = cask::register_event_queue<DestroyEntity>(world, "DestroyEntityQueue");
 }
 
-static void entity_tick(WorldHandle) {
-    if (!compactor || !destroy_queue) return;
-    compactor->compact(*destroy_queue);
+static void entity_tick(WorldHandle handle) {
+    auto* state = static_cast<EntityPluginState*>(world_resolve_component(handle, "EntityPluginState"));
+    if (!state || !state->compactor || !state->destroy_queue) return;
+    state->compactor->compact(*state->destroy_queue);
 }
 
-static void entity_shutdown(WorldHandle) {
-    compactor = nullptr;
-    destroy_queue = nullptr;
-}
-
-static const char* defined_components[] = {"EntityTable", "EntityCompactor", "DestroyEntityQueue"};
+static const char* defined_components[] = {"EntityTable", "EntityCompactor", "DestroyEntityQueue", "EntityPluginState"};
 static const char* required_components[] = {"EventSwapper"};
 
 static PluginInfo plugin_info = {
     "entity",
     defined_components,
     required_components,
-    3,
+    4,
     1,
     entity_init,
     entity_tick,
     nullptr,
-    entity_shutdown
+    nullptr
 };
 
 extern "C" PluginInfo* get_plugin_info() {

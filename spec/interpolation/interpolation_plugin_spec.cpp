@@ -6,8 +6,7 @@
 
 struct InterpolationTestContext : PluginTestContext {
     FrameAdvancer* advancer() {
-        uint32_t advancer_id = world.register_component("FrameAdvancer");
-        return world.get<FrameAdvancer>(advancer_id);
+        return static_cast<FrameAdvancer*>(world.resolve("FrameAdvancer"));
     }
 };
 
@@ -20,10 +19,11 @@ SCENARIO("interpolation plugin reports its metadata", "[interpolation]") {
             REQUIRE(std::strcmp(info->name, "interpolation") == 0);
         }
 
-        THEN("it defines the FrameAdvancer component") {
-            REQUIRE(info->defines_count == 1);
+        THEN("it defines the FrameAdvancer and InterpolationPluginState components") {
+            REQUIRE(info->defines_count == 2);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "FrameAdvancer") == 0);
+            REQUIRE(std::strcmp(info->defines_components[1], "InterpolationPluginState") == 0);
         }
 
         THEN("it requires no components") {
@@ -31,10 +31,13 @@ SCENARIO("interpolation plugin reports its metadata", "[interpolation]") {
             REQUIRE(info->requires_components == nullptr);
         }
 
-        THEN("it provides init tick and shutdown functions") {
+        THEN("it provides init and tick functions") {
             REQUIRE(info->init_fn != nullptr);
             REQUIRE(info->tick_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
+        }
+
+        THEN("it does not provide a shutdown function") {
+            REQUIRE(info->shutdown_fn == nullptr);
         }
 
         THEN("it does not provide a frame function") {
@@ -76,6 +79,35 @@ SCENARIO("interpolation plugin tick advances all interpolated values", "[interpo
         }
 
         context.shutdown();
+    }
+}
+
+SCENARIO("interpolation plugin isolates state between worlds", "[interpolation]") {
+    GIVEN("two worlds each with the interpolation plugin initialized") {
+        InterpolationTestContext world1;
+        InterpolationTestContext world2;
+        world1.init();
+        world2.init();
+
+        Interpolated<float> interpolated1{0.0f, 5.0f};
+        Interpolated<float> interpolated2{0.0f, 10.0f};
+        world1.advancer()->add(&interpolated1, advance_interpolated<float>);
+        world2.advancer()->add(&interpolated2, advance_interpolated<float>);
+
+        WHEN("only world1 is ticked") {
+            world1.tick();
+
+            THEN("world1 interpolated value is advanced") {
+                REQUIRE(interpolated1.previous == 5.0f);
+            }
+
+            THEN("world2 interpolated value is not advanced") {
+                REQUIRE(interpolated2.previous == 0.0f);
+            }
+        }
+
+        world2.shutdown();
+        world1.shutdown();
     }
 }
 

@@ -17,18 +17,15 @@ struct EntityTestContext : PluginTestContext {
     }
 
     EntityTable* entity_table() {
-        uint32_t table_id = world.register_component("EntityTable");
-        return world.get<EntityTable>(table_id);
+        return static_cast<EntityTable*>(world.resolve("EntityTable"));
     }
 
     EntityCompactor* compactor() {
-        uint32_t compactor_id = world.register_component("EntityCompactor");
-        return world.get<EntityCompactor>(compactor_id);
+        return static_cast<EntityCompactor*>(world.resolve("EntityCompactor"));
     }
 
     EventQueue<DestroyEntity>* destroy_entity_queue() {
-        uint32_t queue_id = world.register_component("DestroyEntityQueue");
-        return world.get<EventQueue<DestroyEntity>>(queue_id);
+        return static_cast<EventQueue<DestroyEntity>*>(world.resolve("DestroyEntityQueue"));
     }
 };
 
@@ -41,12 +38,13 @@ SCENARIO("entity plugin reports its metadata", "[entity]") {
             REQUIRE(std::strcmp(info->name, "entity") == 0);
         }
 
-        THEN("it defines EntityTable EntityCompactor and DestroyEntityQueue") {
-            REQUIRE(info->defines_count == 3);
+        THEN("it defines EntityTable EntityCompactor DestroyEntityQueue and EntityPluginState") {
+            REQUIRE(info->defines_count == 4);
             REQUIRE(info->defines_components != nullptr);
             REQUIRE(std::strcmp(info->defines_components[0], "EntityTable") == 0);
             REQUIRE(std::strcmp(info->defines_components[1], "EntityCompactor") == 0);
             REQUIRE(std::strcmp(info->defines_components[2], "DestroyEntityQueue") == 0);
+            REQUIRE(std::strcmp(info->defines_components[3], "EntityPluginState") == 0);
         }
 
         THEN("it requires the EventSwapper component") {
@@ -59,9 +57,12 @@ SCENARIO("entity plugin reports its metadata", "[entity]") {
             REQUIRE(info->init_fn != nullptr);
         }
 
-        THEN("it provides tick and shutdown functions") {
+        THEN("it provides a tick function") {
             REQUIRE(info->tick_fn != nullptr);
-            REQUIRE(info->shutdown_fn != nullptr);
+        }
+
+        THEN("it does not provide a shutdown function") {
+            REQUIRE(info->shutdown_fn == nullptr);
         }
 
         THEN("it does not provide a frame function") {
@@ -122,11 +123,8 @@ SCENARIO("entity plugin tick compacts destroyed entities", "[entity]") {
         test_store.insert(entity, 42);
 
         WHEN("a DestroyEntity event is emitted and tick is called") {
-            auto* queue = context.destroy_entity_queue();
-            REQUIRE(queue != nullptr);
-            queue->emit(DestroyEntity{entity});
+            context.destroy_entity_queue()->emit(DestroyEntity{entity});
             context.swapper.swap_all();
-            REQUIRE(context.info->tick_fn != nullptr);
             context.tick();
 
             THEN("the entity is no longer alive") {
@@ -139,6 +137,41 @@ SCENARIO("entity plugin tick compacts destroyed entities", "[entity]") {
         }
 
         context.shutdown();
+    }
+}
+
+SCENARIO("entity plugin tick isolates destruction between worlds", "[entity]") {
+    GIVEN("two initialized worlds with an entity each") {
+        EntityTestContext world1;
+        world1.init();
+        ComponentStore<uint32_t> store1;
+        world1.compactor()->add(&store1, remove_component<uint32_t>);
+        uint32_t entity1 = world1.entity_table()->create();
+        store1.insert(entity1, 10);
+
+        EntityTestContext world2;
+        world2.init();
+        ComponentStore<uint32_t> store2;
+        world2.compactor()->add(&store2, remove_component<uint32_t>);
+        uint32_t entity2 = world2.entity_table()->create();
+        store2.insert(entity2, 20);
+
+        WHEN("a destroy event is emitted and ticked on world1 only") {
+            world1.destroy_entity_queue()->emit(DestroyEntity{entity1});
+            world1.swapper.swap_all();
+            world1.tick();
+
+            THEN("world1 entity is destroyed") {
+                REQUIRE_FALSE(world1.entity_table()->alive(entity1));
+            }
+
+            THEN("world2 entity is still alive") {
+                REQUIRE(world2.entity_table()->alive(entity2));
+            }
+        }
+
+        world2.shutdown();
+        world1.shutdown();
     }
 }
 
