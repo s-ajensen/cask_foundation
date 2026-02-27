@@ -12,11 +12,14 @@
 #include <cask/resource/resource_handle.hpp>
 #include <cask/resource/resource_loader_registry.hpp>
 #include <cask/resource/resource_sources.hpp>
+#include <cask/resource/resource_descriptor.hpp>
 #include <cask/foundation/register_serializable_resource.hpp>
 
 struct TestResource {
     int value;
 };
+
+CASK_RESOURCE_DESCRIPTOR(TestResource, "TestResource")
 
 struct SerializableResourceContext {
     World world;
@@ -63,9 +66,7 @@ SCENARIO("registering a serializable resource creates ResourceSources that is re
         SerializableResourceContext context;
 
         WHEN("register_serializable_resource is called") {
-            auto* sources = cask::register_serializable_resource<TestResource>(
-                context.view, "TestResourceStore", "TestResourceComponents",
-                "TestResourceSources", "TestResourceLoaderRegistry");
+            auto* sources = cask::register_serializable_resource<TestResource>(context.view);
 
             THEN("the returned pointer is not null") {
                 REQUIRE(sources != nullptr);
@@ -84,9 +85,7 @@ SCENARIO("registering a serializable resource registers sources in Serialization
         SerializableResourceContext context;
 
         WHEN("register_serializable_resource is called") {
-            cask::register_serializable_resource<TestResource>(
-                context.view, "TestResourceStore", "TestResourceComponents",
-                "TestResourceSources", "TestResourceLoaderRegistry");
+            cask::register_serializable_resource<TestResource>(context.view);
 
             THEN("SerializationRegistry has an entry for the sources name") {
                 REQUIRE(context.registry()->has("TestResourceSources"));
@@ -100,9 +99,7 @@ SCENARIO("registering a serializable resource registers component handle store i
         SerializableResourceContext context;
 
         WHEN("register_serializable_resource is called") {
-            cask::register_serializable_resource<TestResource>(
-                context.view, "TestResourceStore", "TestResourceComponents",
-                "TestResourceSources", "TestResourceLoaderRegistry");
+            cask::register_serializable_resource<TestResource>(context.view);
 
             THEN("SerializationRegistry has an entry for the components name") {
                 REQUIRE(context.registry()->has("TestResourceComponents"));
@@ -114,9 +111,7 @@ SCENARIO("registering a serializable resource registers component handle store i
 SCENARIO("resource sources entry has no serialization dependencies", "[resource_registration]") {
     GIVEN("a world with a registered serializable resource") {
         SerializableResourceContext context;
-        cask::register_serializable_resource<TestResource>(
-            context.view, "TestResourceStore", "TestResourceComponents",
-            "TestResourceSources", "TestResourceLoaderRegistry");
+        cask::register_serializable_resource<TestResource>(context.view);
 
         WHEN("the sources entry is inspected") {
             auto& entry = context.registry()->get("TestResourceSources");
@@ -131,9 +126,7 @@ SCENARIO("resource sources entry has no serialization dependencies", "[resource_
 SCENARIO("resource components entry depends on EntityRegistry and sources", "[resource_registration]") {
     GIVEN("a world with a registered serializable resource") {
         SerializableResourceContext context;
-        cask::register_serializable_resource<TestResource>(
-            context.view, "TestResourceStore", "TestResourceComponents",
-            "TestResourceSources", "TestResourceLoaderRegistry");
+        cask::register_serializable_resource<TestResource>(context.view);
 
         WHEN("the components entry is inspected") {
             auto& entry = context.registry()->get("TestResourceComponents");
@@ -157,9 +150,7 @@ SCENARIO("resource sources round-trip invokes registered loaders", "[resource_re
             return TestResource{entry_json["val"].get<int>()};
         });
 
-        cask::register_serializable_resource<TestResource>(
-            context.view, "TestResourceStore", "TestResourceComponents",
-            "TestResourceSources", "TestResourceLoaderRegistry");
+        cask::register_serializable_resource<TestResource>(context.view);
 
         auto* sources = context.view.resolve<ResourceSources<TestResource>>("TestResourceSources");
         sources->entries["item_a"] = {{"loader", "test"}, {"val", 42}};
@@ -173,9 +164,7 @@ SCENARIO("resource sources round-trip invokes registered loaders", "[resource_re
                 return TestResource{entry_json["val"].get<int>()};
             });
 
-            cask::register_serializable_resource<TestResource>(
-                fresh_context.view, "TestResourceStore", "TestResourceComponents",
-                "TestResourceSources", "TestResourceLoaderRegistry");
+            cask::register_serializable_resource<TestResource>(fresh_context.view);
 
             auto* fresh_sources = fresh_context.view.resolve<ResourceSources<TestResource>>("TestResourceSources");
             auto& fresh_entry = fresh_context.registry()->get("TestResourceSources");
