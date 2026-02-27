@@ -55,6 +55,7 @@ add_cask_plugin(texture)
 add_cask_plugin(entity)
 add_cask_plugin(identity)
 add_cask_plugin(serialization)
+add_cask_plugin(project)
 
 add_executable(registration_tests
     spec/registration/register_event_queue_spec.cpp
